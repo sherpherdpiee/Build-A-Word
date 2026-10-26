@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build-a-Word Challenge | Digraph Detective</title>
+<style>
+  :root {
+    --ink:#24324a; --muted:#63718a; --paper:#f6f8ff; --card:#ffffff;
+    --purple:#6854d9; --purple-light:#eeeaff; --teal:#147d83;
+    --green:#18794e; --green-bg:#e8f8ef; --red:#a63232; --red-bg:#fff0ef;
+    --line:#dfe5f2; --yellow:#fff4c8;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: "Trebuchet MS", Arial, sans-serif; background:linear-gradient(135deg,#f2f5ff,#fff9ed); color:var(--ink); }
+  button, input { font:inherit; }
+  button { cursor:pointer; }
+  .app { max-width:1000px; margin:0 auto; padding:22px 16px 36px; }
+  header { text-align:center; padding:14px 10px 20px; }
+  .eyebrow { color:var(--purple); font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:.78rem; }
+  h1 { margin:8px 0; font-size:clamp(2rem,5vw,3.2rem); line-height:1.05; }
+  header p { color:var(--muted); max-width:650px; margin:10px auto; line-height:1.5; }
+  .topline { display:flex; gap:12px; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+  .pill { background:#fff; border:1px solid var(--line); border-radius:999px; padding:9px 14px; font-weight:700; font-size:.9rem; }
+  .progress { height:10px; background:#e5e9f5; border-radius:99px; overflow:hidden; flex:1; min-width:100px; }
+  .progress > div { height:100%; width:0; background:linear-gradient(90deg,var(--purple),#20a6a4); transition:width .25s; }
+  .panel { background:rgba(255,255,255,.94); border:1px solid var(--line); border-radius:24px; padding:clamp(16px,3vw,28px); box-shadow:0 12px 34px rgba(44,55,100,.08); }
+  .layout { display:grid; grid-template-columns: minmax(220px,.85fr) minmax(0,1.4fr); gap:22px; }
+  @media(max-width:700px){ .layout{grid-template-columns:1fr;} .app{padding:12px;} }
+  .picture-card { border-radius:20px; background:linear-gradient(160deg,#f1efff,#e9fbfa); padding:20px; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:250px; }
+  .emoji { font-size:clamp(5rem,13vw,8rem); line-height:1.1; filter:drop-shadow(0 5px 1px rgba(35,50,74,.08)); }
+  .picture-label { margin-top:12px; color:var(--muted); font-size:.95rem; }
+  .case-number { color:var(--purple); font-weight:800; font-size:.82rem; text-transform:uppercase; letter-spacing:.08em; }
+  h2 { margin:7px 0 8px; font-size:1.5rem; }
+  .instructions { color:var(--muted); line-height:1.5; margin:0 0 16px; }
+  .word-slots { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin:20px 0 16px; min-height:62px; }
+  .slot { width:52px; height:58px; border:2px dashed #b9c3d9; border-radius:13px; display:flex; justify-content:center; align-items:center; background:#fafbff; font-weight:900; font-size:1.5rem; }
+  .slot.filled { border-style:solid; border-color:var(--purple); background:var(--purple-light); }
+  .slot.target { border-color:#1c9c9a; }
+  .tiles-label { font-weight:800; margin:10px 0 8px; }
+  .tiles { display:flex; flex-wrap:wrap; justify-content:center; gap:9px; min-height:54px; }
+  .tile { border:2px solid #d6d0ff; border-radius:13px; background:#f3f0ff; color:#3d2d9a; padding:11px 15px; min-width:48px; font-size:1.18rem; font-weight:900; box-shadow:0 3px 0 #d8d0ff; user-select:none; touch-action:manipulation; }
+  .tile:hover, .tile:focus { outline:3px solid #c9c1ff; }
+  .tile.selected { background:#dff8f4; border-color:#50b8ac; color:#075f60; }
+  .tile.used { opacity:.35; box-shadow:none; }
+  .actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:18px; }
+  .btn { border:0; border-radius:13px; padding:12px 16px; font-weight:800; transition:transform .1s,filter .1s; }
+  .btn:active { transform:translateY(1px); }
+  .primary { color:#fff; background:var(--purple); }
+  .secondary { color:var(--ink); background:#edf0f8; }
+  .teal { color:#fff; background:var(--teal); }
+  .yellow { background:var(--yellow); color:#6a4b00; }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+  .feedback { margin-top:16px; padding:13px 15px; border-radius:14px; line-height:1.45; display:none; }
+  .feedback.show { display:block; }
+  .feedback.good { color:var(--green); background:var(--green-bg); border:1px solid #b7e7cb; }
+  .feedback.try { color:var(--red); background:var(--red-bg); border:1px solid #ffd0cb; }
+  .feedback.neutral { color:#5b4a00; background:#fff8d9; border:1px solid #f2df8a; }
+  .mic-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:18px; padding:14px; background:#f8f9ff; border:1px solid var(--line); border-radius:16px; }
+  .mic-icon { font-size:1.5rem; }
+  .mic-copy { flex:1; min-width:160px; }
+  .mic-copy strong { display:block; }
+  .small { color:var(--muted); font-size:.88rem; line-height:1.4; }
+  .voice-result { margin-top:8px; font-weight:800; min-height:1.2em; }
+  .footer-note { margin:18px 2px 0; color:var(--muted); font-size:.82rem; line-height:1.5; }
+  .mode-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .mode { border:1px solid var(--line); border-radius:999px; background:#fff; padding:9px 13px; font-weight:800; color:var(--muted); }
+  .mode.active { background:var(--purple-light); border-color:#bdb2ff; color:#4634b5; }
+  .read-word { font-size:2.2rem; font-weight:900; letter-spacing:.03em; text-align:center; margin:15px 0; }
+  .highlight { color:var(--purple); text-decoration:underline; text-decoration-thickness:4px; text-underline-offset:4px; }
+  .end-screen { text-align:center; padding:30px 10px; }
+  .end-screen .emoji { font-size:5rem; }
+  .hidden { display:none !important; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+  .status-pill { background:#fff; border:1px solid var(--line); border-radius:999px; padding:9px 14px; font-weight:900; font-size:.9rem; }
+  .status-pill.lives { color:#a63232; }
+  .gesture-panel { margin:0 0 16px; padding:16px; border-radius:20px; border:1px solid #c9c4ff; background:linear-gradient(135deg,#171c3a,#32256f 65%,#4d2f87); color:#fff; box-shadow:0 10px 26px rgba(36,25,87,.18); }
+  .gesture-header { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center; }
+  .gesture-header h2 { margin:0; color:#fff; }
+  .gesture-header p { margin:5px 0 12px; color:#e0dcff; line-height:1.4; }
+  .gesture-layout { display:grid; grid-template-columns:minmax(220px,.9fr) minmax(220px,1.1fr); gap:14px; align-items:center; }
+  .camera-box { position:relative; background:#090d20; border:2px solid #8b7dff; border-radius:15px; overflow:hidden; min-height:170px; display:flex; align-items:center; justify-content:center; }
+  #handVideo { display:block; width:100%; min-height:170px; max-height:260px; object-fit:cover; transform:scaleX(-1); }
+  #handCanvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; transform:scaleX(-1); }
+  .camera-placeholder { position:absolute; padding:12px; text-align:center; color:#d9d4ff; line-height:1.5; }
+  .gesture-instructions { color:#f3f0ff; font-size:.92rem; line-height:1.5; }
+  .gesture-instructions ol { margin:8px 0; padding-left:22px; }
+  .gesture-status { margin-top:8px; border-radius:12px; padding:10px 12px; background:rgba(255,255,255,.12); font-weight:800; min-height:42px; }
+  .gesture-status.good { background:#145b4c; }
+  .gesture-status.warn { background:#744b08; }
+  .gesture-buttons { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .gesture-btn { border:0; border-radius:12px; padding:10px 13px; font-weight:900; color:#211b55; background:#fff; }
+  .gesture-btn.start { background:#ffe56b; }
+  .gesture-btn:disabled { opacity:.55; }
+  .locked-target { outline:4px solid #ffe45c !important; outline-offset:3px; box-shadow:0 0 0 7px rgba(255,228,92,.25),0 0 22px #ffe45c !important; position:relative; z-index:2; }
+  .bolt-flash { position:fixed; inset:0; z-index:9999; pointer-events:none; background:rgba(255,244,110,.25); animation:flashOut .28s ease-out forwards; }
+  .bolt-shape { position:fixed; z-index:10000; pointer-events:none; font-size:clamp(4rem,13vw,9rem); filter:drop-shadow(0 0 18px #ffe65a); animation:boltStrike .45s ease-out forwards; transform:translate(-50%,-50%); }
+  @keyframes flashOut { from{opacity:1} to{opacity:0} }
+  @keyframes boltStrike { 0%{opacity:0;transform:translate(-50%,-70%) scale(.4)} 25%{opacity:1;transform:translate(-50%,-50%) scale(1.2)} 100%{opacity:0;transform:translate(-50%,-35%) scale(.8)} }
+  .target-cursor { position:fixed; z-index:9998; width:28px; height:28px; border:3px solid #ffe45c; border-radius:50%; box-shadow:0 0 0 5px rgba(255,228,92,.25),0 0 18px #ffe45c; pointer-events:none; transform:translate(-50%,-50%); display:none; }
+  @media(max-width:650px){ .gesture-layout{grid-template-columns:1fr;} .camera-box{min-height:140px;} #handVideo{min-height:140px;} }
+
+
+  .word-slots { display:grid !important; grid-template-columns:repeat(3,minmax(66px,1fr)) !important; gap:10px !important; max-width:390px; margin:20px auto 16px !important; }
+  .word-slots .slot { min-width:66px; min-height:72px; font-size:1.4rem; }
+  .three-box-hint { text-align:center; font-weight:900; color:var(--ink); margin:6px 0 12px; letter-spacing:.04em; }
+
+  .word-slots { display:grid !important; grid-template-columns:repeat(3,minmax(72px,100px)) !important; justify-content:center !important; gap:12px !important; min-height:88px; margin:18px auto 24px !important; }
+  .word-slots .slot { display:flex !important; align-items:center; justify-content:center; min-width:72px; min-height:76px; border:3px dashed #8a7bea; border-radius:14px; background:#f6f4ff; color:#24204d; font-size:1.45rem; font-weight:900; }
+  .word-slots .slot.filled { border-style:solid; background:#e9e5ff; }
+  .tiles { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; min-height:72px; margin:12px 0 24px; }
+  .tiles .tile { min-width:58px; min-height:58px; padding:12px 16px; font-size:1.2rem; font-weight:900; border-radius:14px; cursor:grab; }
+
+  /* Microphone panel improvements */
+  .mic-controls { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+  .mic-btn { border:0; border-radius:13px; padding:12px 16px; font-weight:800; font-size:1rem; cursor:pointer; transition:transform .1s,opacity .15s; min-width:140px; }
+  .mic-btn:active { transform:translateY(1px); }
+  .mic-btn.on { background:#18794e; color:#fff; }
+  .mic-btn.off { background:#a63232; color:#fff; }
+  .mic-btn.retry { background:#f2df8a; color:#5b4a00; }
+  .mic-btn:disabled { opacity:.45; cursor:not-allowed; }
+  .mic-status-badge { display:inline-block; padding:6px 12px; border-radius:999px; font-weight:800; font-size:.85rem; margin-top:6px; }
+  .mic-status-badge.off { background:#fff0ef; color:#a63232; border:1px solid #ffd0cb; }
+  .mic-status-badge.ready { background:#e8f8ef; color:#18794e; border:1px solid #b7e7cb; }
+  .mic-status-badge.listening { background:#eeeaff; color:#6854d9; border:1px solid #bdb2ff; animation:pulse 1.2s infinite; }
+  .mic-status-badge.detected { background:#e8f8ef; color:#18794e; border:1px solid #b7e7cb; }
+  .mic-status-badge.unrecognised { background:#fff4c8; color:#6a4b00; border:1px solid #f2df8a; }
+  .mic-status-badge.error { background:#fff0ef; color:#a63232; border:1px solid #ffd0cb; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+  .voice-result { margin-top:8px; font-weight:800; min-height:1.2em; font-size:.95rem; line-height:1.4; }
+  .skip-mic { font-size:.85rem; color:var(--muted); margin-top:4px; }
+  .skip-mic a { color:var(--purple); text-decoration:underline; cursor:pointer; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="target-cursor" id="gestureCursor"></div>
+<div class="app">
+  <header>
+    <div class="eyebrow">Detective Headquarters • Phonics Lab</div>
+    <h1>🔎 Build-a-Word Challenge</h1>
+    <p>Become a lightning-powered Digraph Detective! Use hand gestures in front of your webcam to select letter tiles, inspect picture clues and strike answers. Practise <strong>sh</strong>, <strong>ch</strong>, <strong>th</strong> and <strong>ng</strong>.</p>
+  </header>
+
+  <div class="topline">
+    <div class="pill" id="roundPill">Case 1 of 12</div>
+    <div class="progress" aria-label="Game progress"><div id="progressBar"></div></div>
+    <div class="pill" id="scorePill">Solved: 0</div>
+    <div class="status-pill lives" id="livesPill">❤️ Lives: 3</div>
+    <div class="status-pill" id="timerPill">⏳ No time limit</div>
+  </div>
+
+  <div class="mode-row" aria-label="Choose activity level">
+    <button class="mode active" data-mode="build">1. Build the word</button>
+    <button class="mode" data-mode="choose">2. Choose the word</button>
+    <button class="mode" data-mode="read">3. Read the word</button>
+  </div>
+
+
+  <section class="gesture-panel" aria-label="Webcam hand gesture controls">
+    <div class="gesture-header">
+      <div>
+        <h2>⚡ Gesture Control Lab</h2>
+        <p>Open palm to lock onto a tile, answer or picture clue. Make a fist to strike it with lightning!</p>
+      </div>
+      <div class="pill">🖐️ Open palm = lock · ✊ Fist = strike · No time limit</div>
+    </div>
+    <div class="gesture-layout">
+      <div class="camera-box">
+        <video id="handVideo" autoplay muted playsinline></video>
+        <canvas id="handCanvas"></canvas>
+        <div class="camera-placeholder" id="cameraPlaceholder">Camera is off.<br>Press <b>Start webcam</b> and allow camera access.</div>
+      </div>
+      <div class="gesture-instructions">
+        <strong>How to play with your hand</strong>
+        <ol>
+          <li>Stand or sit where the webcam can see one hand clearly.</li>
+          <li>Move your index fingertip cursor over a letter tile, answer, or picture clue.</li>
+          <li>Show an <b>open palm</b> for a moment to lock onto it.</li>
+          <li>Clench a <b>fist</b> to strike the locked target with a lightning bolt.</li>
+        </ol>
+        <div class="small" style="color:#e0dcff">Picture clue: strike it to reveal or repeat the clue. Letter tiles and answers are activated by a lightning strike.</div>
+        <div class="gesture-status" id="gestureStatus" aria-live="polite">Webcam is not running. You can still play using touch, mouse or keyboard.</div>
+        <div class="gesture-buttons">
+          <button class="gesture-btn start" id="startCamera">📷 Start webcam</button>
+          <button class="gesture-btn" id="stopCamera" disabled>Stop webcam</button>
+          <button class="gesture-btn" id="gestureHelp">Gesture help</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="panel" id="gamePanel">
+    <div class="layout" id="gameLayout">
+      <section class="picture-card">
+        <div class="emoji" id="pictureEmoji" aria-hidden="true">🚢</div>
+        <div class="picture-label" id="pictureLabel">Picture clue</div>
+      </section>
+      <section>
+        <div class="case-number" id="caseType">Evidence file • Build it</div>
+        <h2 id="questionTitle">What word matches the picture?</h2>
+        <p class="instructions" id="instruction">Use exactly three sound boxes. A digraph such as sh, ch or th goes together in one box: (sh) (i) (p).</p>
+
+        <div id="buildArea">
+          <div class="three-box-hint">THREE SOUND BOXES · e.g. (sh) (i) (p)</div><div class="word-slots" id="wordSlots" aria-label="Three sound boxes"></div>
+          <div class="tiles-label">Letter tiles</div>
+          <div class="tiles" id="letterTiles" aria-label="Available letter tiles"></div>
+          <div class="actions">
+            <button class="btn primary" id="checkBuild">Check my word</button>
+            <button class="btn secondary" id="clearBuild">Start again</button>
+          </div>
+        </div>
+
+        <div id="chooseArea" class="hidden">
+          <div class="actions" id="wordChoices"></div>
+        </div>
+
+        <div id="readArea" class="hidden">
+          <div class="read-word" id="readWord"></div>
+          <p class="small">Read the whole word. Then identify the digraph shown in the word.</p>
+          <div class="actions" id="digraphChoices"></div>
+        </div>
+
+        <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+
+        <div class="mic-row">
+          <div class="mic-icon" aria-hidden="true">🎙️</div>
+          <div class="mic-copy">
+            <strong>Say the word aloud</strong>
+            <div class="small">Turn the microphone on, then say the whole word clearly. This is a helper — you can skip it if you prefer.</div>
+            <div class="mic-controls">
+              <button class="mic-btn on" id="micOnBtn">🎤 Turn Microphone On</button>
+              <button class="mic-btn off" id="micOffBtn" disabled>🔇 Turn Microphone Off</button>
+              <button class="mic-btn retry" id="micRetryBtn" style="display:none">🔄 Try Again</button>
+            </div>
+            <div class="mic-status-badge off" id="micStatusBadge" aria-live="polite">Microphone off</div>
+            <div class="voice-result" id="voiceResult" aria-live="polite"></div>
+            <div class="skip-mic">You can keep playing without the microphone. <a id="skipMicLink" href="#" onclick="return false;">Skip speaking</a></div>
+          </div>
+        </div>
+        <div class="actions" style="justify-content:flex-end">
+          <button class="btn yellow" id="nextButton" disabled>Next case →</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="endScreen" class="end-screen hidden">
+      <div class="emoji" aria-hidden="true">🏆</div>
+      <h2>Case files complete!</h2>
+      <p id="finalScore"></p>
+      <p class="instructions">Great detective work! Practise any words you found tricky with your teacher.</p>
+      <button class="btn primary" id="restartButton">Play again</button>
+    </div>
+  </main>
+
+  <p class="footer-note"><strong>Webcam note:</strong> Hand tracking uses MediaPipe Hands loaded from a CDN. Camera access normally requires HTTPS or localhost and explicit permission; an HTML file opened directly from disk may not allow webcam access in every browser. If webcam access or hand tracking is unavailable, all game questions remain playable with mouse, touch and keyboard. The open-palm/fist gesture detector is an interactive classroom aid, not a medical-grade motion detector. <strong>Teacher note:</strong> The microphone feature uses your browser’s speech-recognition technology to listen for the target word. It checks recognised words, not perfect pronunciation. Microphone recognition usually requires internet access and a supported browser (often Chrome or Edge), and the page should be opened with microphone permission. If voice recognition is unavailable, pupils can still play all other parts of the game and the teacher can listen to their reading.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script>
+(() => {
+  // ---- The twelve target words, used by every activity section ----
+  const ALL_WORDS = [
+    {word:"ship", digraph:"sh", emoji:"🚢", label:"A ship on the water"},
+    {word:"chip", digraph:"ch", emoji:"🍟", label:"A chip to eat"},
+    {word:"thin", digraph:"th", emoji:"✏️", label:"A thin pencil"},
+    {word:"fish", digraph:"sh", emoji:"🐟", label:"A fish"},
+    {word:"shop", digraph:"sh", emoji:"🏪", label:"A shop"},
+    {word:"chop", digraph:"ch", emoji:"🥕", label:"Chop a carrot"},
+    {word:"chin", digraph:"ch", emoji:"🙂", label:"Your chin"},
+    {word:"bath", digraph:"th", emoji:"🛁", label:"A bath"},
+    {word:"this", digraph:"th", emoji:"👉", label:"This one here"},
+    {word:"that", digraph:"th", emoji:"👈", label:"That one over there"},
+    {word:"sing", digraph:"ng", emoji:"🎵", label:"Sing a song"},
+    {word:"ring", digraph:"ng", emoji:"💍", label:"A ring"}
+  ];
+
+  // Build the case list: every activity section cycles through all twelve words.
+  const ACTIVITY_ORDER = ["build","choose","read"];
+  const cases = [];
+  ACTIVITY_ORDER.forEach(activity => {
+    ALL_WORDS.forEach(w => {
+      cases.push({ word:w.word, digraph:w.digraph, emoji:w.emoji, label:w.label, type:activity });
+    });
+  });
+
+  const $ = id => document.getElementById(id);
+  let index = 0, solved = 0, currentMode = "build", placed = [], selectedTile = null, lastCorrect = false;
+  let lives = 3, timeLeft = 45, timerHandle = null, gameOver = false;
+
+  // ---- Camera state ----
+  let cameraStream = null, handsTracker = null, cameraRunning = false, lastGesture = "none", lockedElement = null, lockedAt = 0, lastStrikeAt = 0;
+
+  // ---- Microphone state ----
+  let recognition = null;
+  let micOn = false;
+  let isListening = false;
+  let micBusy = false;
+  let lastTranscript = "";
+  let micRetryAvailable = false;
+  let currentTargetWord = "";
+  let recognitionGeneration = 0;
+
+  let audioContext = null;
+
+  const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+  const current = () => cases[index];
+  const digraphs = ["sh","ch","th","ng"];
+  const normalize = s => (s || "").toLowerCase().trim().replace(/[^a-z]/g,"").replace(/\s+/g,"");
+
+  // ---- Speech-recognition word matching helpers ----
+  const recognitionVariants = {
+    ship: ["ship","ships","ship's","shipp"],
+    chip: ["chip","chips","chip's","chipp"],
+    thin: ["thin","thinn","thing"],
+    fish: ["fish","fishes","fish's","phish"],
+    shop: ["shop","shops","shop's","shoppe"],
+    chop: ["chop","chops","chop's","chopp"],
+    chin: ["chin","chinn","chins","chin's"],
+    bath: ["bath","baths","bath's","barth"],
+    this: ["this","this'","dis","tis","vis"],
+    that: ["that","that's","dat","tat","vat"],
+    sing: ["sing","sings","sing'","sink","sin"],
+    ring: ["ring","rings","ring'","rink","rin"]
+  };
+
+  function isTargetMatch(transcripts, target) {
+    const t = normalize(target);
+    if (!t) return false;
+    const variants = new Set([t, ...(recognitionVariants[t] || [])].map(normalize));
+    for (const raw of transcripts) {
+      const heard = normalize(raw);
+      if (!heard) continue;
+      if (variants.has(heard)) return true;
+      const words = heard.split(/\s+/).filter(Boolean);
+      if (words.includes(t)) return true;
+      for (const v of variants) {
+        if (v && words.includes(v)) return true;
+      }
+    }
+    return false;
+  }
+
+  function showFeedback(message, kind="neutral") {
+    const box = $("feedback");
+    box.textContent = message;
+    box.className = `feedback show ${kind}`;
+  }
+  function clearFeedback() {
+    $("feedback").className = "feedback";
+    $("feedback").textContent = "";
+    $("voiceResult").textContent = "";
+  }
+  function setMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll(".mode").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+    render();
+  }
+  function render() {
+    if (gameOver) return;
+    if (index >= cases.length) { finish(); return; }
+    const c = current();
+    lastCorrect = false;
+    $("roundPill").textContent = `Case ${index + 1} of ${cases.length}`;
+    $("scorePill").textContent = `Solved: ${solved}`;
+    $("progressBar").style.width = `${(index / cases.length) * 100}%`;
+    $("pictureEmoji").textContent = c.emoji;
+    $("pictureLabel").textContent = c.label;
+    $("nextButton").disabled = true;
+    timeLeft = 0; updateStatusPills(); stopRoundTimer();
+    clearLockedTarget();
+    clearFeedback();
+    resetMicUIForNewCase();
+
+    const actualMode = c.type === "choose" || c.type === "read" ? c.type : currentMode;
+    $("buildArea").classList.toggle("hidden", actualMode !== "build");
+    $("chooseArea").classList.toggle("hidden", actualMode !== "choose");
+    $("readArea").classList.toggle("hidden", actualMode !== "read");
+    $("caseType").textContent = actualMode === "build" ? "Evidence file • Build it" : actualMode === "choose" ? "Evidence file • Choose it" : "Evidence file • Read it";
+    $("questionTitle").textContent = actualMode === "build" ? "What word matches the picture?" : actualMode === "choose" ? "Choose the word that matches the picture." : "Read the word and find its digraph.";
+    $("instruction").textContent = actualMode === "build" ? "Use exactly three sound boxes. A digraph such as sh, ch, th or ng goes together in one box: (sh) (i) (p)." : actualMode === "choose" ? "Select the correct word, then read it aloud." : "Read the whole word, then select the digraph in it.";
+    if (actualMode === "build") renderBuild(c);
+    if (actualMode === "choose") renderChoose(c);
+    if (actualMode === "read") renderRead(c);
+  }
+
+  function phonicsUnitsForWord(word) {
+    const w = String(word || "").toLowerCase();
+    const known = {
+      ship:["sh","i","p"], chip:["ch","i","p"], thin:["th","i","n"],
+      fish:["f","i","sh"], shop:["sh","o","p"], chop:["ch","o","p"],
+      chin:["ch","i","n"], bath:["b","a","th"], this:["th","i","s"],
+      that:["th","a","t"], sing:["s","i","ng"], ring:["r","i","ng"]
+    };
+    if (known[w]) return known[w];
+    const parts = w.match(/sh|ch|th|ng|ck|./g) || [];
+    if (parts.length === 3) return parts;
+    if (parts.length > 3) return [parts[0], parts[1], parts.slice(2).join("")];
+    while (parts.length < 3) parts.push("");
+    return parts.slice(0, 3);
+  }
+
+  function renderBuild(c) {
+    const units = phonicsUnitsForWord(c.word);
+    placed = Array(units.length).fill(null);
+    selectedTile = null;
+    const slots = $("wordSlots");
+    slots.innerHTML = "";
+    units.forEach((unit, i) => {
+      const slot = document.createElement("button");
+      slot.className = "slot";
+      slot.type = "button";
+      slot.setAttribute("aria-label", `Sound box ${i+1}`);
+      slot.dataset.index = i;
+      slot.addEventListener("click", () => {
+        if (placed[i] !== null) {
+          const tileId = placed[i];
+          placed[i] = null;
+          const tile = document.querySelector(`[data-tile-id="${tileId}"]`);
+          if (tile) tile.classList.remove("used");
+          slot.textContent = "";
+          slot.classList.remove("filled");
+          slot.style.background = "";
+        } else if (selectedTile !== null) {
+          putTile(i, selectedTile);
+        }
+      });
+      slot.addEventListener("dragover", e => { e.preventDefault(); slot.classList.add("target"); });
+      slot.addEventListener("dragleave", () => slot.classList.remove("target"));
+      slot.addEventListener("drop", e => {
+        e.preventDefault(); slot.classList.remove("target");
+        const id = Number(e.dataTransfer.getData("text/plain"));
+        putTile(i, id);
+      });
+      slots.appendChild(slot);
+    });
+
+    const tileContainer = $("letterTiles");
+    tileContainer.innerHTML = "";
+    const tileUnits = units.map((letter, id) => ({letter, id}));
+    const mixed = shuffle(tileUnits.map(t => ({...t})));
+    mixed.forEach(t => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "tile"; b.textContent = t.letter;
+      b.draggable = true; b.dataset.tileId = t.id; b.dataset.value = t.letter;
+      b.addEventListener("click", () => {
+        if (b.classList.contains("used")) return;
+        selectedTile = t.id;
+        document.querySelectorAll(".tile").forEach(x => x.classList.remove("selected"));
+        b.classList.add("selected");
+        showFeedback(`Selected “${t.letter}”. Tap one of the three sound boxes to place it.`, "neutral");
+      });
+      b.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", String(t.id)); });
+      tileContainer.appendChild(b);
+    });
+    window.__tileUnits = mixed;
+    window.__wordBuild = c.word;
+    $("checkBuild").onclick = checkBuild;
+    $("clearBuild").onclick = () => renderBuild(c);
+  }
+  function putTile(slotIndex, tileId) {
+    const units = window.__tileUnits || [];
+    const tile = units.find(t => t.id === tileId);
+    if (!tile) return;
+    if (slotIndex < 0 || slotIndex >= placed.length) return;
+    if (placed[slotIndex] !== null) {
+      showFeedback("That sound box is already filled. Tap it to clear it first.", "try");
+      return;
+    }
+    if (placed.includes(tileId)) {
+      showFeedback("That tile is already in a box. Choose another tile.", "try");
+      return;
+    }
+    placed[slotIndex] = tileId;
+    const slot = [...$("wordSlots").children][slotIndex];
+    slot.textContent = tile.letter;
+    slot.classList.add("filled");
+    const tileEl = document.querySelector(`[data-tile-id="${tileId}"]`);
+    if (tileEl) { tileEl.classList.add("used"); tileEl.classList.remove("selected"); }
+    selectedTile = null;
+  }
+  function checkBuild() {
+    const c = current();
+    const units = window.__tileUnits || [];
+    if (placed.some(x => x === null)) {
+      showFeedback("Fill all three sound boxes before checking your word.", "try"); return;
+    }
+    const built = placed.map(id => (units.find(t => t.id === id) || {}).letter || "").join("");
+    if (normalize(built) === c.word) {
+      correctAnswer(`Excellent! You built “${c.word}” using three sound boxes. Now read the whole word aloud.`, true);
+    } else {
+      showFeedback("Not quite. Remember that sh, ch, th or ng belongs together in one box. Try again.", "try");
+      loseLife();
+    }
+  }
+  function renderChoose(c) {
+    const choices = $("wordChoices");
+    choices.innerHTML = "";
+    const options = shuffle([...new Set([c.word, ...shuffle(ALL_WORDS.map(w=>w.word).filter(w=>w!==c.word)).slice(0,2)])]);
+    options.forEach(word => {
+      const b = document.createElement("button"); b.className = "btn secondary"; b.textContent = word;
+      b.onclick = () => {
+        if (word === c.word) correctAnswer(`Correct! The word is “${c.word}”. Read it aloud.`, true);
+        else { showFeedback("Good try! Look carefully at the picture and the first sound. Try again.", "try"); loseLife(); }
+      };
+      choices.appendChild(b);
+    });
+  }
+  function renderRead(c) {
+    const area = $("readWord");
+    const i = c.word.indexOf(c.digraph);
+    area.innerHTML = `${c.word.slice(0,i)}<span class="highlight">${c.digraph}</span>${c.word.slice(i+c.digraph.length)}`;
+    const choices = $("digraphChoices");
+    choices.innerHTML = "";
+    shuffle(digraphs).forEach(d => {
+      const b = document.createElement("button"); b.className = "btn secondary"; b.textContent = d;
+      b.onclick = () => {
+        if (d === c.digraph) correctAnswer(`Correct! You found “${d}” in “${c.word}”. Now read the whole word aloud.`, true);
+        else { showFeedback("Try again. Look at the two letters highlighted in the word.", "try"); loseLife(); }
+      };
+      choices.appendChild(b);
+    });
+  }
+  function correctAnswer(message, enableNext) {
+    if (!lastCorrect) solved++;
+    lastCorrect = true;
+    showFeedback(message, "good");
+    $("scorePill").textContent = `Solved: ${solved}`;
+    $("nextButton").disabled = !enableNext;
+    playTone(740, 0.13, "sine"); setTimeout(() => playTone(980, 0.16, "sine"), 100);
+  }
+  function finish() {
+    stopRoundTimer();
+    stopMicSession(true);
+    $("gameLayout").classList.add("hidden");
+    $("endScreen").classList.remove("hidden");
+    $("progressBar").style.width = "100%";
+    $("roundPill").textContent = "All cases complete";
+    $("scorePill").textContent = `Solved: ${solved}`;
+    $("finalScore").textContent = gameOver && lives <= 0 ? `You solved ${solved} cases before running out of lives. Restart to investigate again!` : `You solved ${solved} of ${cases.length} cases. Well done, detective!`;
+  }
+  function restart() {
+    stopRoundTimer(); stopMicSession(true); gameOver = false; lives = 3; timeLeft = 45; updateStatusPills(); index = 0; solved = 0;
+    $("gameLayout").classList.remove("hidden");
+    $("endScreen").classList.add("hidden");
+    setMode("build");
+  }
+  function nextCase() {
+    stopRoundTimer(); clearLockedTarget(); stopMicSession(true); index++;
+    if (index < cases.length) {
+      const c = current();
+      setMode(c.type === "choose" || c.type === "read" ? c.type : "build");
+    } else finish();
+  }
+
+  function updateStatusPills() {
+    $("livesPill").textContent = `❤️ Lives: ${lives}`;
+    $("timerPill").textContent = "⏳ No time limit";
+  }
+  function startRoundTimer() { stopRoundTimer(); }
+  function stopRoundTimer() {
+    if (timerHandle) clearInterval(timerHandle);
+    timerHandle = null;
+  }
+  function loseLife() {
+    if (gameOver) return;
+    lives = Math.max(0, lives - 1);
+    updateStatusPills();
+    playTone(180, 0.22, "sawtooth");
+    if (lives <= 0) {
+      gameOver = true;
+      stopRoundTimer();
+      stopMicSession(true);
+      $("gameLayout").classList.add("hidden");
+      $("endScreen").classList.remove("hidden");
+      $("finalScore").textContent = `You solved ${solved} cases before running out of lives. Restart to investigate again!`;
+      $("roundPill").textContent = "Case closed";
+      $("nextButton").disabled = true;
+      $("gestureStatus").textContent = "Out of lives! Restart the game to try again.";
+    }
+  }
+  function playTone(freq=620, duration=0.12, type="sine") {
+    try {
+      audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioContext.createOscillator(), gain = audioContext.createGain();
+      osc.type = type; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.12, audioContext.currentTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + duration);
+      osc.connect(gain); gain.connect(audioContext.destination);
+      osc.start(); osc.stop(audioContext.currentTime + duration + 0.02);
+    } catch(e) {}
+  }
+  function clearLockedTarget() {
+    if (lockedElement) lockedElement.classList.remove("locked-target");
+    lockedElement = null;
+    const cursor = document.getElementById("gestureCursor");
+    if (cursor) cursor.style.display = "none";
+  }
+  function strikeLightning(x, y) {
+    const flash = document.createElement("div");
+    flash.className = "bolt-flash";
+    document.body.appendChild(flash);
+    const bolt = document.createElement("div");
+    bolt.className = "bolt-shape"; bolt.textContent = "⚡";
+    bolt.style.left = `${x}px`; bolt.style.top = `${y}px`;
+    document.body.appendChild(bolt);
+    setTimeout(() => { flash.remove(); bolt.remove(); }, 520);
+    playTone(120, 0.09, "sawtooth");
+    setTimeout(() => playTone(420, 0.12, "triangle"), 55);
+  }
+  function activateGestureTarget(el, x, y) {
+    if (!el) return;
+    strikeLightning(x, y);
+    if (el.closest(".picture-card")) {
+      const label = $("pictureLabel").textContent;
+      showFeedback(`🔎 Clue inspected: ${label}. Now use the picture to solve the word case.`, "neutral");
+      const pic = $("pictureEmoji");
+      pic.animate([{transform:"scale(1)"},{transform:"scale(1.12) rotate(-4deg)"},{transform:"scale(1)"}], {duration:320});
+      return;
+    }
+    if (el.matches("button") && !el.disabled) el.click();
+    else {
+      const clickable = el.closest("button");
+      if (clickable && !clickable.disabled) clickable.click();
+    }
+  }
+  function classifyHand(lm) {
+    const fingerPairs = [[8,6],[12,10],[16,14],[20,18]];
+    let extended = 0;
+    fingerPairs.forEach(([tip,pip]) => { if (lm[tip].y < lm[pip].y - 0.025) extended++; });
+    const wrist = lm[0], palm = lm[9];
+    const tipDistances = [8,12,16,20].map(i => Math.hypot(lm[i].x-palm.x, lm[i].y-palm.y));
+    const curled = tipDistances.filter(d => d < 0.22).length;
+    if (extended >= 3) return "open";
+    if (curled >= 3 && extended <= 1) return "fist";
+    return "other";
+  }
+  function setGestureStatus(msg, kind="") {
+    const s = $("gestureStatus"); s.textContent = msg; s.className = `gesture-status ${kind}`;
+  }
+  async function startCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setGestureStatus("This browser or page cannot access a webcam. Open the file through HTTPS or localhost, or use mouse/touch controls.", "warn");
+      return;
+    }
+    if (!window.Hands) {
+      setGestureStatus("Hand-tracking library could not load. Check your internet connection, then refresh the page.", "warn");
+      return;
+    }
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"user", width:{ideal:640}, height:{ideal:480}}, audio:false});
+      $("handVideo").srcObject = cameraStream;
+      await $("handVideo").play();
+      $("cameraPlaceholder").classList.add("hidden");
+      $("startCamera").disabled = true; $("stopCamera").disabled = false;
+      handsTracker = new Hands({locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+      handsTracker.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.65, minTrackingConfidence:0.6});
+      handsTracker.onResults(onHandResults);
+      cameraRunning = true;
+      setGestureStatus("Webcam ready. Show an open palm and move your fingertip over a target.", "good");
+      await cameraLoop();
+    } catch(err) {
+      stopCamera();
+      setGestureStatus("Camera access failed. Allow webcam permission and use HTTPS or localhost. Mouse/touch controls still work.", "warn");
+    }
+  }
+  async function cameraLoop() {
+    while (cameraRunning && $("handVideo").readyState >= 2) {
+      try { await handsTracker.send({image:$("handVideo")}); } catch(e) {}
+      await new Promise(resolve => requestAnimationFrame(resolve));
+    }
+  }
+  function onHandResults(results) {
+    const canvas = $("handCanvas"), video = $("handVideo"), ctx = canvas.getContext("2d");
+    const w = video.videoWidth || 640, h = video.videoHeight || 480;
+    if (canvas.width !== w || canvas.height !== h) { canvas.width=w; canvas.height=h; }
+    ctx.clearRect(0,0,w,h);
+    const cursor = document.getElementById("gestureCursor");
+    if (!results.multiHandLandmarks || !results.multiHandLandmarks.length) {
+      lastGesture = "none"; setGestureStatus("Show one hand clearly to the webcam."); return;
+    }
+    const lm = results.multiHandLandmarks[0];
+    ctx.fillStyle = "#ffe45c";
+    lm.forEach(p => { ctx.beginPath(); ctx.arc(p.x*w,p.y*h,3,0,Math.PI*2); ctx.fill(); });
+    const gesture = classifyHand(lm);
+    const finger = lm[8];
+    const screenX = (1 - finger.x) * window.innerWidth;
+    const screenY = finger.y * window.innerHeight;
+    let pointCursor = document.getElementById("gestureCursor");
+    if (!pointCursor) {
+      pointCursor = document.createElement("div"); pointCursor.id="gestureCursor"; pointCursor.className="target-cursor"; document.body.appendChild(pointCursor);
+    }
+    pointCursor.style.display = "block"; pointCursor.style.left = `${screenX}px`; pointCursor.style.top = `${screenY}px`;
+    const under = document.elementFromPoint(screenX, screenY);
+    const target = under && under.closest("button, .picture-card");
+    if (gesture === "open") {
+      if (target && target !== lockedElement) {
+        if (lockedElement) lockedElement.classList.remove("locked-target");
+        lockedElement = target; lockedElement.classList.add("locked-target"); lockedAt = Date.now();
+        setGestureStatus(`Target locked: ${target.classList.contains("picture-card") ? "picture clue" : (target.textContent.trim().slice(0,28) || "answer")}. Make a fist to strike!`, "good");
+        playTone(680, 0.07, "sine");
+      } else if (!target) {
+        setGestureStatus("Open palm detected. Move your fingertip onto a tile, answer or picture clue.");
+      }
+    } else if (gesture === "fist" && lastGesture !== "fist" && lockedElement && Date.now()-lockedAt > 250 && Date.now()-lastStrikeAt > 650) {
+      lastStrikeAt = Date.now();
+      const el = lockedElement;
+      el.classList.remove("locked-target"); lockedElement = null;
+      setGestureStatus("⚡ Lightning strike!", "good");
+      activateGestureTarget(el, screenX, screenY);
+    } else if (gesture === "other") {
+      setGestureStatus("Hand seen. Open your palm to lock onto a target, then make a fist.");
+    }
+    lastGesture = gesture;
+  }
+  function stopCamera() {
+    cameraRunning = false;
+    if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+    if (handsTracker && handsTracker.close) { try { handsTracker.close(); } catch(e) {} }
+    handsTracker = null;
+    $("handVideo").srcObject = null;
+    $("cameraPlaceholder").classList.remove("hidden");
+    $("startCamera").disabled = false; $("stopCamera").disabled = true;
+    clearLockedTarget();
+    setGestureStatus("Webcam stopped. You can continue with mouse, touch or keyboard.");
+  }
+  $("startCamera").addEventListener("click", startCamera);
+  $("stopCamera").addEventListener("click", stopCamera);
+  $("gestureHelp").addEventListener("click", () => {
+    setGestureStatus("Open palm = lock a target. Fist = lightning strike. Strike a picture clue to inspect it, or strike a letter tile/answer to activate it.", "good");
+  });
+
+  // =========================================================================
+  // MICROPHONE / SPEECH-RECOGNITION FEATURE
+  // =========================================================================
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function setMicStatus(text, kind) {
+    const badge = $("micStatusBadge");
+    badge.textContent = text;
+    badge.className = `mic-status-badge ${kind}`;
+  }
+
+  function updateMicButtons() {
+    const onBtn = $("micOnBtn");
+    const offBtn = $("micOffBtn");
+    const retryBtn = $("micRetryBtn");
+
+    onBtn.disabled = micOn || micBusy;
+    offBtn.disabled = !micOn || micBusy;
+    onBtn.style.display = micOn ? "none" : "inline-block";
+    offBtn.style.display = micOn ? "inline-block" : "none";
+
+    if (micOn && isListening) {
+      retryBtn.style.display = "none";
+    } else if (micOn && micRetryAvailable) {
+      retryBtn.style.display = "inline-block";
+      retryBtn.textContent = "🔄 Try Again";
+    } else if (micOn && !isListening) {
+      retryBtn.style.display = "inline-block";
+      retryBtn.textContent = "🎤 Start Listening";
+    } else {
+      retryBtn.style.display = "none";
+    }
+  }
+
+  function resetMicUIForNewCase() {
+    stopMicSession(true);
+    lastTranscript = "";
+    micRetryAvailable = false;
+    $("voiceResult").textContent = "";
+    if (micOn) {
+      setMicStatus("Microphone ready", "ready");
+    } else {
+      setMicStatus("Microphone off", "off");
+    }
+    updateMicButtons();
+    currentTargetWord = current() ? current().word : "";
+  }
+
+  function stopMicSession(silent = false) {
+    micBusy = true;
+    isListening = false;
+    recognitionGeneration++;
+    if (recognition) {
+      try { recognition.onresult = null; recognition.onend = null; recognition.onerror = null; recognition.abort(); } catch(e) {}
+      recognition = null;
+    }
+    if (!silent) {
+      $("voiceResult").textContent = "";
+    }
+    micBusy = false;
+    updateMicButtons();
+  }
+
+  function turnMicOn() {
+    if (micBusy) return;
+    if (!SR) {
+      setMicStatus("Not supported", "error");
+      $("voiceResult").textContent = "Speech recognition is not supported in this browser. Try the latest Chrome or Edge. You can still say the word aloud for your teacher.";
+      micOn = false;
+      updateMicButtons();
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setMicStatus("Unavailable", "error");
+      $("voiceResult").textContent = "Microphone access is unavailable. Check your browser permissions and use HTTPS or localhost.";
+      return;
+    }
+    micOn = true;
+    micRetryAvailable = false;
+    setMicStatus("Microphone ready", "ready");
+    $("voiceResult").textContent = "Microphone is ready. Press “Start Listening” and say the word clearly.";
+    updateMicButtons();
+  }
+
+  function turnMicOff() {
+    micOn = false;
+    micRetryAvailable = false;
+    stopMicSession(true);
+    setMicStatus("Microphone off", "off");
+    $("voiceResult").textContent = "";
+    updateMicButtons();
+  }
+
+  function startListening() {
+    if (!micOn || isListening || micBusy) return;
+    if (!SR) {
+      setMicStatus("Not supported", "error");
+      $("voiceResult").textContent = "Speech recognition is not supported in this browser. You can still say the word aloud.";
+      return;
+    }
+    const c = current();
+    if (!c) return;
+    const actualMode = c.type === "choose" || c.type === "read" ? c.type : currentMode;
+
+    if (actualMode === "build") {
+      const units = window.__tileUnits || [];
+      const built = placed.map(id => id === null ? "" : ((units.find(t => t.id === id) || {}).letter || "")).join("");
+      if (placed.some(x => x === null) || normalize(built) !== c.word) {
+        setMicStatus("Build first", "unrecognised");
+        $("voiceResult").textContent = "Build the word first, then try speaking.";
+        return;
+      }
+    }
+
+    currentTargetWord = c.word;
+    micBusy = true;
+    micRetryAvailable = false;
+    isListening = false;
+    const generation = ++recognitionGeneration;
+    $("voiceResult").textContent = "";
+    setMicStatus("Listening…", "listening");
+
+    try {
+      recognition = new SR();
+      recognition.lang = "en-GB";
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 5;
+
+      let finalTranscript = "";
+
+      recognition.onstart = () => {
+        if (generation !== recognitionGeneration) return;
+        isListening = true;
+        micBusy = false;
+        updateMicButtons();
+        setMicStatus("Listening…", "listening");
+        $("voiceResult").textContent = "🎙️ Listening… say the whole word clearly and aloud.";
+      };
+
+      recognition.onresult = (event) => {
+        if (generation !== recognitionGeneration) return;
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) finalTranscript += " " + result[0].transcript;
+          else interim += " " + result[0].transcript;
+        }
+        if (interim.trim()) {
+          setMicStatus("Speech detected", "detected");
+          $("voiceResult").textContent = `I’m hearing: “${interim.trim()}”…`;
+        }
+        if (finalTranscript.trim()) {
+          const allTranscripts = [];
+          for (let i = 0; i < event.results.length; i++) {
+            const res = event.results[i];
+            if (!res.isFinal) continue;
+            for (let j = 0; j < res.length; j++) {
+              allTranscripts.push(res[j].transcript);
+            }
+          }
+          if (!allTranscripts.length && finalTranscript.trim()) allTranscripts.push(finalTranscript.trim());
+          const heard = allTranscripts[0] || finalTranscript.trim();
+          lastTranscript = heard;
+
+          const matched = isTargetMatch(allTranscripts, currentTargetWord);
+
+          if (matched) {
+            setMicStatus("Excellent!", "detected");
+            $("voiceResult").textContent = `I heard: “${heard}” ✓`;
+            showFeedback(`Excellent! The microphone recognised “${currentTargetWord}”.`, "good");
+            playTone(820, 0.12, "sine");
+            micRetryAvailable = false;
+          } else {
+            setMicStatus("Try again", "unrecognised");
+            $("voiceResult").textContent = `I heard: “${heard}”. The target word is “${currentTargetWord}”.`;
+            showFeedback(`I couldn't recognise the word clearly — I heard “${heard}”. Listen to the word again and say it slowly. Your teacher can also listen to your pronunciation. This does not affect your game lives.`, "neutral");
+            micRetryAvailable = true;
+          }
+          updateMicButtons();
+        }
+      };
+
+      recognition.onerror = (e) => {
+        if (generation !== recognitionGeneration) return;
+        isListening = false;
+        micBusy = false;
+        const messages = {
+          "not-allowed": "Microphone access is unavailable. Check your browser permissions.",
+          "service-not-allowed": "Microphone access is unavailable. Check your browser permissions.",
+          "no-speech": "I didn’t hear speech. Try saying the word aloud again.",
+          "audio-capture": "No microphone was found. Connect or enable a microphone, then try again.",
+          "network": "Speech recognition needs an internet connection in this browser. You can still say the word aloud for your teacher.",
+          "aborted": "Listening stopped. Press “Try Again” when you’re ready."
+        };
+        setMicStatus("Unavailable", "error");
+        $("voiceResult").textContent = messages[e.error] || "I couldn’t recognise that clearly. Try again or ask your teacher to listen.";
+        if (e.error !== "aborted") micRetryAvailable = true;
+        updateMicButtons();
+      };
+
+      recognition.onend = () => {
+        if (generation !== recognitionGeneration) return;
+        isListening = false;
+        micBusy = false;
+        updateMicButtons();
+        if (!lastTranscript.trim() && micOn) {
+          micRetryAvailable = true;
+          setMicStatus("Microphone ready", "ready");
+          $("voiceResult").textContent = "I didn’t catch that. Tap “Try Again” and say the word clearly.";
+          updateMicButtons();
+        } else if (!lastTranscript.trim() && !micOn) {
+          setMicStatus("Microphone off", "off");
+        }
+      };
+
+      recognition.start();
+    } catch(err) {
+      micBusy = false;
+      isListening = false;
+      micRetryAvailable = true;
+      setMicStatus("Error", "error");
+      $("voiceResult").textContent = "Could not start the microphone. Check browser permissions and try again.";
+      updateMicButtons();
+    }
+  }
+
+  // Button wiring
+  $("micOnBtn").addEventListener("click", turnMicOn);
+  $("micOffBtn").addEventListener("click", turnMicOff);
+  $("micRetryBtn").addEventListener("click", () => {
+    if (!micOn) { turnMicOn(); return; }
+    if (isListening || micBusy) return;
+    micRetryAvailable = false;
+    updateMicButtons();
+    startListening();
+  });
+  $("skipMicLink").addEventListener("click", (e) => {
+    e.preventDefault();
+    if (micOn) turnMicOff();
+    showFeedback("You can skip speaking. Try the other parts of the game, or ask your teacher to listen to you read.", "neutral");
+  });
+
+  resetMicUIForNewCase();
+
+  window.addEventListener("beforeunload", () => {
+    stopMicSession(true);
+    stopCamera();
+  });
+
+  // ---- Existing UI wiring ----
+  document.querySelectorAll(".mode").forEach(b => b.addEventListener("click", () => {
+    setMode(b.dataset.mode);
+  }));
+  $("nextButton").addEventListener("click", nextCase);
+  $("restartButton").addEventListener("click", restart);
+
+  $("voiceResult").addEventListener("click", () => {
+    if (!micOn) turnMicOn();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
